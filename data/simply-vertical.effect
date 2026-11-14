@@ -1,0 +1,207 @@
+// Simply Vertical for OBS
+// Copyright (C) 2026 SimplyNickish
+// Licensed under the GNU General Public License, version 2 or later.
+//
+// All drawing for the layout. Colours stay in the same (sRGB) space a web
+// page canvas uses, so the picture matches the website exactly.
+
+uniform float4x4 ViewProj;
+uniform texture2d image;  // a piece mask, or the small background picture
+uniform texture2d source; // the game or camera picture
+uniform float4 crop;      // where to read from the picture: xy start, zw size (0 to 1)
+uniform float4 color;
+uniform float4 misc;
+uniform float4 misc2;
+
+sampler_state def_sampler {
+	Filter   = Linear;
+	AddressU = Clamp;
+	AddressV = Clamp;
+};
+
+struct VertData {
+	float4 pos : POSITION;
+	float2 uv  : TEXCOORD0;
+};
+
+VertData VSDefault(VertData v_in)
+{
+	VertData vert_out;
+	vert_out.pos = mul(float4(v_in.pos.xyz, 1.0), ViewProj);
+	vert_out.uv  = v_in.uv;
+	return vert_out;
+}
+
+// A cut-out of the picture, no shape.
+float4 PSCrop(VertData v_in) : TARGET
+{
+	float4 c = source.Sample(def_sampler, crop.xy + v_in.uv * crop.zw);
+	return float4(c.rgb, c.a);
+}
+
+// A cut-out of the picture, shaped by the mask.
+float4 PSMasked(VertData v_in) : TARGET
+{
+	float m = image.Sample(def_sampler, v_in.uv).r;
+	float4 c = source.Sample(def_sampler, crop.xy + v_in.uv * crop.zw);
+	return float4(c.rgb, c.a * m);
+}
+
+// The same, faded by misc.x: a social rotator's link fading in or out.
+float4 PSMaskedFade(VertData v_in) : TARGET
+{
+	float m = image.Sample(def_sampler, v_in.uv).r;
+	float4 c = source.Sample(def_sampler, crop.xy + v_in.uv * crop.zw);
+	return float4(c.rgb, c.a * m * misc.x);
+}
+
+// One colour, shaped by the mask: shadows, glows and borders.
+float4 PSTint(VertData v_in) : TARGET
+{
+	float m = image.Sample(def_sampler, v_in.uv).r;
+	return float4(color.rgb, color.a * m);
+}
+
+float4 PSSolid(VertData v_in) : TARGET
+{
+	return color;
+}
+
+// A small ready-made colour picture: the lamp lines.
+float4 PSStamp(VertData v_in) : TARGET
+{
+	return image.Sample(def_sampler, v_in.uv);
+}
+
+// Soft blur along one direction. misc.xy = one pixel step, misc.z = softness.
+float4 PSBlur(VertData v_in) : TARGET
+{
+	float s = max(misc.z, 0.5);
+	float4 sum = float4(0.0, 0.0, 0.0, 0.0);
+	float wsum = 0.0;
+	for (float i = -24.0; i <= 24.0; i += 1.0) {
+		float w = exp(-(i * i) / (2.0 * s * s));
+		sum += image.Sample(def_sampler, v_in.uv + misc.xy * i) * w;
+		wsum += w;
+	}
+	return sum / wsum;
+}
+
+// The blurred background with its darkening, vignette and faint blue light,
+// the same recipe as the website. misc.x = darkening, misc.yz = how far the
+// blurred picture hangs off each edge, misc2.xy = canvas size.
+float4 PSLight(VertData v_in) : TARGET
+{
+	float W = misc2.x;
+	float H = misc2.y;
+	float2 p = v_in.uv * float2(W, H);
+	float ox = misc.y;
+	float oy = misc.z;
+	float2 buv = float2((p.x + ox) / (W + 2.0 * ox), (p.y + oy) / (H + 2.0 * oy));
+	float3 c = image.Sample(def_sampler, buv).rgb;
+
+	c = c * (1.0 - misc.x);
+
+	float dx = p.x - W * 0.5;
+	float dy = p.y - H * 0.5;
+	float vy = dy * W / H;
+	float d = sqrt(dx * dx + vy * vy);
+	float va = 0.85 * saturate((d - 0.26 * W) / (0.49 * W));
+	c = c * (1.0 - va) + float3(4.0, 4.0, 10.0) / 255.0 * va;
+
+	float gy = dy / (0.4 * H / W);
+	float d2 = sqrt(dx * dx + gy * gy);
+	float ga = 0.45 * (1.0 - saturate(d2 / (0.7 * W)));
+	float3 g = float3(40.0, 70.0, 170.0) / 255.0 * ga;
+	c = c + g - c * g;
+
+	return float4(c, 1.0);
+}
+
+// The last layout, already drawn, fading out during a smooth switch. The
+// picture holds premultiplied colour, misc.x = how much of it is left.
+float4 PSFade(VertData v_in) : TARGET
+{
+	return image.Sample(def_sampler, v_in.uv) * misc.x;
+}
+
+technique Fade
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSFade(v_in);
+	}
+}
+
+technique Crop
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSCrop(v_in);
+	}
+}
+
+technique Masked
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSMasked(v_in);
+	}
+}
+
+technique MaskedFade
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSMaskedFade(v_in);
+	}
+}
+
+technique Tint
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSTint(v_in);
+	}
+}
+
+technique Solid
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSSolid(v_in);
+	}
+}
+
+technique Stamp
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSStamp(v_in);
+	}
+}
+
+technique Blur
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSBlur(v_in);
+	}
+}
+
+technique Light
+{
+	pass
+	{
+		vertex_shader = VSDefault(v_in);
+		pixel_shader  = PSLight(v_in);
+	}
+}
