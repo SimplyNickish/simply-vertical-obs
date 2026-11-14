@@ -6,7 +6,7 @@ Made by [SimplyNickish](https://simplynickish.com). Simply Vertical needs a Simp
 
 ## Install
 
-Download the installer from the Go live tab on [vertical.simplynickish.com](https://vertical.simplynickish.com), close OBS, run it, then open OBS again. The installer finds your OBS folder, keeps your sign-in and settings when updating, and asks you to close OBS if it is still open. Remove it any time from Windows Installed apps ("Simply Vertical for OBS").
+Download the installer from the Go live tab on [vertical.simplynickish.com](https://vertical.simplynickish.com), close OBS, run it, then open OBS again. Windows may show a blue "Windows protected your PC" box: that is normal for small apps like this one and the installer is safe, so press More info, then Run anyway. The installer finds your OBS folder, keeps your sign-in and settings when updating, and asks you to close OBS if it is still open. Remove it any time from Windows Installed apps ("Simply Vertical for OBS").
 
 Then, in OBS, open the Simply Vertical dock, press Link my account, and press Approve on the page that opens in your browser.
 
