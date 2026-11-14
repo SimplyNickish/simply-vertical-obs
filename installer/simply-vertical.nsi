@@ -23,6 +23,8 @@ Var ObsRoot
 !define VERSION "0.1.0"
 !define PUBLISHER "SimplyNickish"
 !define SITE "https://vertical.simplynickish.com"
+; The plugin's public source, which the GPL asks every copy to point to.
+!define SOURCE "https://github.com/SimplyNickish/simply-vertical-obs"
 !define KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\SimplyVerticalOBS"
 !define BUILD "..\build_release\RelWithDebInfo"
 !define DATA "data\obs-plugins\simply-vertical"
@@ -65,6 +67,7 @@ VIAddVersionKey "LegalCopyright" "GPL 2.0 or later"
 !define MUI_WELCOMEPAGE_TITLE "Install ${NAME}"
 !define MUI_WELCOMEPAGE_TEXT "This adds the Simply Vertical panel and source to OBS Studio, so your vertical stream runs straight from OBS.$\r$\n$\r$\nClose OBS before you carry on. Your saved sign-in and settings are kept.$\r$\n$\r$\nVersion ${VERSION}."
 !insertmacro MUI_PAGE_WELCOME
+!define MUI_LICENSEPAGE_TEXT_BOTTOM "Simply Vertical is free software. Its source code is at ${SOURCE}. Press I Agree to carry on."
 !insertmacro MUI_PAGE_LICENSE "..\LICENSE"
 !define MUI_DIRECTORYPAGE_TEXT_TOP "This is the folder OBS Studio is installed in. It was found for you, so only change it if you put OBS somewhere else."
 !define MUI_DIRECTORYPAGE_TEXT_DESTINATION "OBS Studio folder"
